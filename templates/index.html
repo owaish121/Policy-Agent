@@ -1,0 +1,118 @@
+<!DOCTYPE html>
+<html lang="hi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Policy Agent AI</title>
+    <!-- Tailwind CSS CDN -->
+    <script src="https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4"></script>
+</head>
+<!-- बैकग्राउंड का सुंदर सॉफ्ट ग्रैडिएंट कलर -->
+<body class="bg-gradient-to-tr from-blue-100 via-sky-50 to-indigo-100 font-sans min-h-screen text-slate-800 flex items-center justify-center p-4">
+    <!-- मुख्य कंटेनर - चौड़ाई को कम करके max-w-xl (लगभग 576px) सेट किया है -->
+    <div class="w-full max-w-xl bg-white rounded-2xl shadow-xl border border-slate-200/60 overflow-hidden flex flex-col min-h-[70vh]">
+        
+        <!-- हेडर सेक्शन -->
+        <div class="bg-slate-900 text-white p-5 flex flex-col sm:flex-row items-center justify-between gap-4 border-b border-slate-800">
+            <div class="flex items-center gap-3">
+                <span class="text-3xl">🤖</span>
+                <div>
+                    <h1 class="text-base font-bold tracking-wide">Policy Agent AI</h1>
+                    <p class="text-[10px] text-slate-400">Order_NFSA_2015.pdf सक्रिय है</p>
+                </div>
+            </div>
+            <button id="exit-btn" onclick="exitApp()" class="w-full sm:w-auto bg-rose-600 hover:bg-rose-700 text-white font-semibold text-xs px-4 py-2 rounded-xl transition-colors shadow">
+                🚪 ऐप बंद करें (Exit)
+            </button>
+        </div>
+
+        <!-- मुख्य कंटेंट एरिया -->
+        <div class="flex-1 p-5 flex flex-col justify-between gap-5">
+            
+            <!-- जवाब दिखाने का एरिया -->
+            <div class="flex-1">
+                <div id="answer-box" class="hidden space-y-2 mb-4">
+                    <h3 class="text-[11px] font-bold uppercase tracking-wider text-slate-400">📝 नीति विशेषज्ञ का जवाब:</h3>
+                    <div id="answer" class="p-4 bg-blue-50/50 border border-blue-100 rounded-xl text-slate-800 text-[15px] leading-relaxed whitespace-pre-wrap shadow-inner">
+                        <!-- जवाब यहाँ आएगा -->
+                    </div>
+                </div>
+            </div>
+
+            <!-- सवाल इनपुट फ़ॉर्म -->
+            <div class="border-t border-slate-100 pt-4">
+                <div class="flex flex-col sm:flex-row gap-2">
+                    <input type="text" id="question" placeholder="अपना सवाल यहाँ लिखें..." 
+                           class="flex-1 bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 text-sm focus:outline-none focus:border-blue-500 focus:bg-white transition-all shadow-inner">
+                    
+                    <button id="submit-btn" onclick="askQuestion()" 
+                            class="bg-blue-600 hover:bg-blue-700 text-white font-medium px-5 py-3 rounded-xl text-sm transition-colors shadow flex items-center justify-center shrink-0">
+                        <span id="btn-text">सबमिट करें</span>
+                    </button>
+                </div>
+            </div>
+
+        </div>
+    </div>
+
+    <!-- JavaScript -->
+    <script>
+        document.getElementById('question').addEventListener('keypress', function(e) {
+            if (e.key === 'Enter') {
+                askQuestion();
+            }
+        });
+
+        async function askQuestion() {
+            const q = document.getElementById('question').value.trim();
+            const ansDiv = document.getElementById('answer');
+            const ansBox = document.getElementById('answer-box');
+            const btnText = document.getElementById('btn-text');
+            const submitBtn = document.getElementById('submit-btn');
+
+            if (!q) {
+                alert("कृपया पहले अपना सवाल टाइप करें!");
+                return;
+            }
+
+            btnText.textContent = "खोज रहा हूँ...";
+            submitBtn.disabled = true;
+            
+            ansBox.classList.remove('hidden');
+            ansDiv.innerHTML = `<span class="text-slate-400 italic text-sm">पॉलिसी दस्तावेज़ खंगाला जा रहा है, कृपया प्रतीक्षा करें...</span>`;
+            
+            const formData = new FormData();
+            formData.append('question', q);
+
+            try {
+                const res = await fetch('/ask', { method: 'POST', body: formData });
+                const data = await res.json();
+                
+                btnText.textContent = "सबमिट करें";
+                submitBtn.disabled = false;
+
+                if (data.answer) {
+                    ansDiv.className = "p-4 bg-blue-50/50 border border-blue-100 rounded-xl text-slate-800 text-[15px] leading-relaxed whitespace-pre-wrap shadow-inner";
+                    ansDiv.innerText = data.answer;
+                } else {
+                    ansDiv.className = "p-4 bg-rose-50 border border-rose-100 rounded-xl text-rose-700 text-[15px] whitespace-pre-wrap shadow-inner";
+                    ansDiv.innerText = data.error || "कोई जवाब नहीं मिला।";
+                }
+            } catch (error) {
+                btnText.textContent = "सबमिट करें";
+                submitBtn.disabled = false;
+                ansDiv.className = "p-4 bg-rose-50 border border-rose-100 rounded-xl text-rose-700 text-[15px] shadow-inner";
+                ansDiv.innerText = "सर्वर से संपर्क करने में त्रुटि हुई।";
+            }
+        }
+
+        async function exitApp() {
+            if (confirm("क्या आप सच में ऐप बंद करके सर्वर से फाइलें साफ करना चाहते हैं?")) {
+                await fetch('/exit', { method: 'POST' });
+                alert("एप्लिकेशन सर्वर से फाइलें साफ कर दी गई हैं। अब आप यह टैब बंद कर सकते हैं।");
+                location.reload();
+            }
+        }
+    </script>
+</body>
+</html>
