@@ -10,18 +10,16 @@ app = Flask(__name__)
 api_key = os.environ.get("MY_API_KEY")
 client = genai.Client(api_key=api_key)
 
-# PDF फाइल ऑब्जेक्ट के बजाय केवल उसका नाम / पाथ स्टोर करें
 PDF_PATH = "Order_NFSA_2015.pdf"
-pdf_file_obj = None
+pdf_file = None
 
-def get_file():
-    global pdf_file_obj
-    if pdf_file_obj is None:
-        if os.path.exists(PDF_PATH):
-            print("Gemini पर PDF अपलोड हो रही है...")
-            pdf_file_obj = client.files.upload(file=PDF_PATH)
-            print("PDF सफलता पूर्वक अपलोड हो गई!")
-    return pdf_file_obj
+# सर्वर स्टार्ट होते ही PDF अपलोड
+if os.path.exists(PDF_PATH):
+    try:
+        pdf_file = client.files.upload(file=PDF_PATH)
+        print("✅ PDF सफलतापूर्वक Gemini पर अपलोड हो गई है!")
+    except Exception as e:
+        print("❌ PDF अपलोड एरर:", str(e))
 
 @app.route("/")
 def index():
@@ -29,22 +27,26 @@ def index():
 
 @app.route("/ask", methods=["POST"])
 def ask():
+    global pdf_file
     try:
-        user_query = request.json.get("query")
-        
-        # हर वर्कर अपनी जरूरत के हिसाब से फाइल ऑब्जेक्ट उठा लेगा
-        file_data = get_file()
-        
-        if not file_data:
-            return jsonify({"response": "सर्वर पर Order_NFSA_2015.pdf फाइल उपलब्ध नहीं है।"})
+        # JSON या Form डेटा दोनों को रीड करने के लिए
+        data = request.get_json(force=True, silent=True) or request.form
+        user_query = data.get("query") if data else None
+
+        if not user_query:
+            return jsonify({"response": "कृपया कोई सवाल लिखें।"})
+
+        if not pdf_file:
+            if os.path.exists(PDF_PATH):
+                pdf_file = client.files.upload(file=PDF_PATH)
+            else:
+                return jsonify({"response": "सर्वर पर PDF फाइल नहीं मिली।"})
 
         response = client.models.generate_content(
             model="gemini-2.5-flash",
-            contents=[file_data, user_query]
+            contents=[pdf_file, user_query]
         )
-        
-        answer = response.text if response.text else "कोई जवाब नहीं मिला।"
-        return jsonify({"response": answer})
+        return jsonify({"response": response.text})
 
     except Exception as e:
         print("Error during ask:", str(e))

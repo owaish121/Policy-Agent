@@ -9,7 +9,7 @@
 </head>
 <!-- बैकग्राउंड का सुंदर सॉफ्ट ग्रैडिएंट कलर -->
 <body class="bg-gradient-to-tr from-blue-100 via-sky-50 to-indigo-100 font-sans min-h-screen text-slate-800 flex items-center justify-center p-4">
-    <!-- मुख्य कंटेनर - चौड़ाई को कम करके max-w-xl (लगभग 576px) सेट किया है -->
+    <!-- मुख्य कंटेनर -->
     <div class="w-full max-w-xl bg-white rounded-2xl shadow-xl border border-slate-200/60 overflow-hidden flex flex-col min-h-[70vh]">
         
         <!-- हेडर सेक्शन -->
@@ -80,20 +80,24 @@
             
             ansBox.classList.remove('hidden');
             ansDiv.innerHTML = `<span class="text-slate-400 italic text-sm">पॉलिसी दस्तावेज़ खंगाला जा रहा है, कृपया प्रतीक्षा करें...</span>`;
-            
-            const formData = new FormData();
-            formData.append('question', q);
 
             try {
-                const res = await fetch('/ask', { method: 'POST', body: formData });
+                const res = await fetch('/ask', { 
+                    method: 'POST', 
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({ query: q })
+                });
+                
                 const data = await res.json();
                 
                 btnText.textContent = "सबमिट करें";
                 submitBtn.disabled = false;
 
-                if (data.answer) {
+                if (data.response) {
                     ansDiv.className = "p-4 bg-blue-50/50 border border-blue-100 rounded-xl text-slate-800 text-[15px] leading-relaxed whitespace-pre-wrap shadow-inner";
-                    ansDiv.innerText = data.answer;
+                    ansDiv.innerText = data.response;
                 } else {
                     ansDiv.className = "p-4 bg-rose-50 border border-rose-100 rounded-xl text-rose-700 text-[15px] whitespace-pre-wrap shadow-inner";
                     ansDiv.innerText = data.error || "कोई जवाब नहीं मिला।";
