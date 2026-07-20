@@ -41,10 +41,22 @@ def ask():
                 pdf_file = client.files.upload(file=PDF_PATH)
             else:
                 return jsonify({"response": "सर्वर पर PDF फाइल नहीं मिली।"})
+            
+        sys_instruction = (
+            "आप एक सहायक पॉलिसी एक्सपर्ट हैं। अपलोड की गई स्कैन पीडीएफ को ध्यान से पढ़ें "
+            "और उसी के आधार पर USER के सवाल का सटीक जवाब दें। जवाब हमेशा हिंदी में और स्पष्ट होना चाहिए।"
+            "पीडीएफ में जानकारी जिस खंड, उप-खंड, नियम या क्लॉज (जैसे: क, ख, ग, या 1, 2, 3) के तहत दी गई है, "
+            "जवाब में उस खंड का नाम और नंबर हूबहू शामिल करें (उदा. 'खंड (क) के अनुसार...')"
+        )
 
         response = client.models.generate_content(
             model="gemini-2.5-flash",
-            contents=[pdf_file, user_query]
+            contents=[pdf_file, user_query],
+            config={
+                "system_instruction": sys_instruction,
+                "temperature": 0.1
+                
+            }
         )
         return jsonify({"response": response.text})
 
